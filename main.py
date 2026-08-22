@@ -56,6 +56,12 @@ def load_dataset(data_file: str, dataset_type: str):
             except json.JSONDecodeError:
                 f.seek(0)
                 data = [json.loads(line) for line in f.readlines()]
+        elif dataset_type == 'fotobot_traj':
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                f.seek(0)
+                data = [json.loads(line) for line in f.readlines()]
         else:
             raise ValueError(f"Unknown dataset type: {dataset_type}")
 
@@ -106,6 +112,11 @@ def split_data(data, dataset_type: str):
             train_data = data[:train_end]
             val_data = data[train_end:val_end]
             test_data = data[val_end:]
+    elif dataset_type == 'fotobot_traj':
+        data_list = [data] if isinstance(data, dict) else data
+        train_data = data_list
+        val_data = []
+        test_data = data_list
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
 

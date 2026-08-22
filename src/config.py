@@ -169,7 +169,7 @@ def get_agentic_memory_args():
 
     # Dataset args
     parser.add_argument('--dataset', type=str, default='locomo',
-                        choices=['locomo', 'longmemeval', 'hotpotqa', 'alfworld'])
+                        choices=['locomo', 'longmemeval', 'hotpotqa', 'alfworld', 'fotobot_traj'])
     parser.add_argument('--data-file', type=str, default='./data/locomo10.json')
     parser.add_argument('--hotpotqa-eval-file', type=str, default='./data/eval_200.json',
                         help='HotpotQA eval data file (same format as training)')

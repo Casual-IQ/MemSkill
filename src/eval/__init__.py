@@ -28,6 +28,7 @@ from .locomo import LoCoMoEvaluator
 from .longmemeval import LongMemEvalEvaluator
 from .hotpotqa import HotpotQAEvaluator
 from .alfworld import ALFWorldEvaluator
+from .fotobot import FotoBotEvaluator
 
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "LongMemEvalEvaluator",
     "HotpotQAEvaluator",
     "ALFWorldEvaluator",
+    "FotoBotEvaluator",
 ]

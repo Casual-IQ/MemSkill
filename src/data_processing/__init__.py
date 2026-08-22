@@ -31,6 +31,7 @@ from .locomo import LoCoMoProcessor
 from .longmemeval import LongMemEvalProcessor
 from .hotpotqa import HotpotQAProcessor
 from .alfworld import ALFWorldOfflineDataset, chunk_trajectories_by_tokens
+from .fotobot import FotoBotProcessor
 
 
 __all__ = [
@@ -49,4 +50,5 @@ __all__ = [
     "HotpotQAProcessor",
     "ALFWorldOfflineDataset",
     "chunk_trajectories_by_tokens",
+    "FotoBotProcessor",
 ]
