@@ -5,57 +5,98 @@ from .base import DataProcessor, ChunkMode, register_processor
 
 @register_processor('fotobot_traj')
 class FotoBotProcessor(DataProcessor):
-    """Data processor for FotoBot camera trajectory logs."""
+    """Data processor for FotoBot real-time inference inputs and memory context."""
 
     supported_chunk_modes = [
         ChunkMode.TURN,
         ChunkMode.TURN_PAIR,
         ChunkMode.FULL_SESSION,
-        ChunkMode.PARAGRAPH,
         ChunkMode.FIXED_LENGTH
     ]
 
     def extract_chunks(self, data: Dict) -> List[str]:
-        """将 JSONL 中的单条记录提取为有意义的文本 Chunk"""
+        """Extract conversation context chunks for memory retrieval, ignoring metadata."""
         if not isinstance(data, dict):
             return [str(data)]
 
-        # 1. 如果存在显式的 action_history 优先使用
-        actions = data.get("action_history", [])
-        if actions:
-            return [
-                json.dumps(act, ensure_ascii=False) if isinstance(act, dict) else str(act)
-                for act in actions
-            ]
+        # Filter out session metadata rows
+        if data.get("_type") == "metadata":
+            return []
 
-        # 2. 适配你的 session.jsonl 结构：提取 role、content 和 tool_calls
-        role = data.get("role", "")
-        content = data.get("content", "")
-        tool_calls = data.get("tool_calls", None)
+        # Handle pre-aggregated session structure: {"key": "...", "messages": [...]}
+        messages = data.get("messages", [])
+        if messages:
+            return self._extract_session_chunks(messages)
 
-        chunk_text = ""
+        # Handle single message streaming/line-by-line input
+        formatted_text = self._format_single_message(data)
+        return [formatted_text] if formatted_text else []
+
+    def _format_single_message(self, msg: Dict) -> str:
+        """Format a single message into plain text with role and reasoning metadata."""
+        if msg.get("_type") == "metadata":
+            return ""
+
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        reasoning = msg.get("reasoning_content", "")
+        tool_calls = msg.get("tool_calls", None)
+
+        parts = []
         if role:
-            chunk_text += f"[{role.upper()}]\n"
+            parts.append(f"[{role.upper()}]")
+        if reasoning:
+            parts.append(f"[Reasoning]\n{reasoning}")
         if content:
-            chunk_text += f"{content}\n"
+            content_str = json.dumps(content, ensure_ascii=False) if isinstance(content, (dict, list)) else str(content)
+            parts.append(content_str)
         if tool_calls:
-            chunk_text += f"Tool Calls: {json.dumps(tool_calls, ensure_ascii=False)}"
+            parts.append(f"Tool Calls: {json.dumps(tool_calls, ensure_ascii=False)}")
 
-        return [chunk_text.strip()] if chunk_text.strip() else [json.dumps(data, ensure_ascii=False)]
+        return "\n".join(parts).strip()
+
+    def _extract_session_chunks(self, messages: List[Dict]) -> List[str]:
+        """Aggregate chunks based on configured ChunkMode."""
+        valid_msgs = [m for m in messages if m.get("_type") != "metadata"]
+
+        if self.chunk_mode == ChunkMode.FULL_SESSION:
+            session_text = "\n\n".join([self._format_single_message(m) for m in valid_msgs if self._format_single_message(m)])
+            return [session_text] if session_text else []
+
+        elif self.chunk_mode == ChunkMode.TURN_PAIR:
+            chunks = []
+            for i in range(0, len(valid_msgs), 2):
+                pair = valid_msgs[i:i+2]
+                pair_text = "\n\n".join([self._format_single_message(m) for m in pair if self._format_single_message(m)])
+                if pair_text:
+                    chunks.append(pair_text)
+            return chunks
+
+        return [self._format_single_message(m) for m in valid_msgs if self._format_single_message(m)]
 
     def get_sample_id(self, data: Dict) -> str:
+        """Extract sample identifier."""
         if isinstance(data, dict):
-            return str(data.get('sample_id', data.get('key', data.get('id', 'fotobot_sample_0'))))
+            return str(data.get('key', data.get('sample_id', data.get('id', 'fotobot_sample_0'))))
         return 'fotobot_sample_0'
 
     def get_qa_list(self, data: Dict) -> List[Dict[str, Any]]:
-        """构建基础 QA 用于计算 Reward，驱动 Skill 生成"""
+        """Construct QA items for evaluation and prompt generation."""
         if isinstance(data, dict) and 'qa_list' in data and data['qa_list']:
             return data['qa_list']
 
-        # 如果 JSONL 里没有 QA，自动提取/构造一条打分问题
+        # Skip metadata and raw tool response logs from QA generation
+        if not isinstance(data, dict) or data.get("_type") == "metadata" or data.get("role") == "tool":
+            return []
+
+        # Extract ground truth if available (optional)
+        answers = []
+        if data.get("tool_calls"):
+            answers.append(json.dumps(data["tool_calls"], ensure_ascii=False))
+
+        # Always return a prompt item with a sample key so the evaluator can trigger build_prompt
         return [{
-            "question": "What standard camera framing or action should be used in this scene?",
-            "answers": [data.get("content", "adjust camera")],  # 用参考动作作为 ground truth
+            "question": "What is the expected camera framing tool action or response given the current visual and trajectory context?",
+            "answers": answers,  # Can be empty []
             "key": self.get_sample_id(data)
         }]

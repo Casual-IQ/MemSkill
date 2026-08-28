@@ -16,10 +16,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from json_repair import repair_json
 from llm_utils import get_llm_response_via_api
-from prompts.designer_prompts import (
-    DESIGNER_ANALYSIS_PROMPT,
-    DESIGNER_REFLECTION_PROMPT,
-    DESIGNER_REFINEMENT_PROMPT,
+from prompts.fotobot_designer_prompts import (
+    FOTOBOT_DESIGNER_ANALYSIS_PROMPT,
+    FOTOBOT_DESIGNER_REFLECTION_PROMPT,
+    FOTOBOT_DESIGNER_REFINEMENT_PROMPT,
 )
 from src.operation_bank import Operation
 
@@ -1102,7 +1102,7 @@ class Designer:
                               "adding a new skill.")
 
         # Format the analysis prompt
-        prompt = DESIGNER_ANALYSIS_PROMPT.format(
+        prompt = FOTOBOT_DESIGNER_ANALYSIS_PROMPT.format(
             operation_bank_description=operation_bank_description,
             evolution_feedback=evolution_feedback,
             num_failure_cases=len(cases),
@@ -1157,7 +1157,7 @@ class Designer:
             new_skill_hint = ("Note: If failures indicate a capability gap, it is encouraged to recommend "
                               "adding a new skill.")
 
-        prompt = DESIGNER_REFLECTION_PROMPT.format(
+        prompt = FOTOBOT_DESIGNER_REFLECTION_PROMPT.format(
             analysis_feedback=analysis_feedback,
             operation_bank_description=operation_bank_description,
             evolution_feedback=evolution_feedback,
@@ -1204,7 +1204,7 @@ class Designer:
         max_changes = self._get_max_changes()
 
         # Format the refinement prompt
-        prompt = DESIGNER_REFINEMENT_PROMPT.format(
+        prompt = FOTOBOT_DESIGNER_REFINEMENT_PROMPT.format(
             analysis_feedback=analysis_feedback,
             operation_bank_full=operation_bank_full,
             evolution_feedback=evolution_feedback,
