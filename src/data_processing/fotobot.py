@@ -46,12 +46,12 @@ class FotoBotProcessor(DataProcessor):
         if role:
             parts.append(f"[{role.upper()}]")
         if reasoning:
-            parts.append(f"[Reasoning]\n{reasoning}")
+            parts.append(f"[Reasoning/CoT]\n{reasoning}")
         if content:
             content_str = json.dumps(content, ensure_ascii=False) if isinstance(content, (dict, list)) else str(content)
-            parts.append(content_str)
+            parts.append(f"[Content]\n{content_str}")
         if tool_calls:
-            parts.append(f"Tool Calls: {json.dumps(tool_calls, ensure_ascii=False)}")
+            parts.append(f"[Tool Calls Executed]\n{json.dumps(tool_calls, ensure_ascii=False, indent=2)}")
 
         return "\n".join(parts).strip()
 
