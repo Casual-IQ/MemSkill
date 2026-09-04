@@ -81,7 +81,7 @@ class FotoBotProcessor(DataProcessor):
         return 'fotobot_sample_0'
 
     def get_qa_list(self, data: Dict) -> List[Dict[str, Any]]:
-        """Construct QA items for evaluation and prompt generation."""
+        """Construct QA items for evaluation and prompt generation, capturing selected skills."""
         if isinstance(data, dict) and 'qa_list' in data and data['qa_list']:
             return data['qa_list']
 
@@ -94,9 +94,13 @@ class FotoBotProcessor(DataProcessor):
         if data.get("tool_calls"):
             answers.append(json.dumps(data["tool_calls"], ensure_ascii=False))
 
-        # Always return a prompt item with a sample key so the evaluator can trigger build_prompt
+        selected_skill_text = data.get("selected_skill_text", "")
+        selected_skill_name = data.get("selected_skill_name", "")
+
         return [{
             "question": "What is the expected camera framing tool action or response given the current visual and trajectory context?",
-            "answers": answers,  # Can be empty []
-            "key": self.get_sample_id(data)
+            "answers": answers,
+            "key": self.get_sample_id(data),
+            "selected_skill_text": selected_skill_text,
+            "selected_skill_name": selected_skill_name
         }]

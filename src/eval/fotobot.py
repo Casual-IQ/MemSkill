@@ -30,16 +30,28 @@ class FotoBotEvaluator(Evaluator):
         return eval_args
 
     def build_prompt(self, question: str, retrieved_memories: List[str], qa_item: Dict) -> str:
-        """Construct the evaluation prompt incorporating retrieved composition skills."""
+        """Construct evaluation prompt separating retrieved trajectory context and active photography skills."""
+        # 1. Format Memory Context
         if len(retrieved_memories) > 0:
-            context_parts = [f"[Composition Skill {i}]\n{mem}" for i, mem in enumerate(retrieved_memories, 1)]
-            context = "\n\n".join(context_parts)
+            mem_parts = [f"[Scene History {i}]\n{mem}" for i, mem in enumerate(retrieved_memories, 1)]
+            memory_context = "\n\n".join(mem_parts)
         else:
-            context = "No specific photography skills retrieved."
+            memory_context = "No historical trajectory context retrieved."
+
+        # 2. extract Selected Skill from qa_item
+        selected_skill_text = qa_item.get("selected_skill_text", "") if isinstance(qa_item, dict) else ""
+        if selected_skill_text:
+            skill_context = f"[Active Candidate Skill Rules]\n{selected_skill_text}"
+        else:
+            skill_context = "Standard camera execution without specific candidate skills."
 
         return (
-            f"Active Photography Guidelines & Skills:\n{context}\n\n"
-            f"Task Description & Scene Constraints:\n{question}\n\n"
+            f"=== Historical Scene & Trajectory Context ===\n"
+            f"{memory_context}\n\n"
+            f"=== Active Photography Skills & Constraints ===\n"
+            f"{skill_context}\n\n"
+            f"=== Current Task Description ===\n"
+            f"{question}\n\n"
             f"Provide the recommended camera adjustment steps or framing decision in standard tool_calls format:"
         )
 
